@@ -35,3 +35,8 @@ This project is just for fun. :)
 TODO :
 ------
 Cranking this up to the running state.
+
+MEMO :
+------
+Considering reallocate system registers to 8 or 6 registers from 4.
+More flexible structure design.

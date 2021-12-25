@@ -2,3 +2,18 @@ LTFrame : 0.1a
 
 LTFrame is a program library that help making a program for R216XXX.
 
+
+
+LTFrame register reservation
+    - r0  ~ r9  : User registers
+        These registers are reserved for user programs. 
+    
+    - r10 ~ r13 : System registers
+        Reserved registers for LTFrame and library functions.
+
+Rules for implementing libraries:
+    - Including parameters, functions should preferentially use r10 ~ r13(System registers).
+    - If your function requires more than 4 registers, you can use user registers too but must put back user registers to original value when the function ends.
+    - When implementing functions, System registers excluding parameters must be kept the original value considering the case be called in system functions.
+    - As far as there are no explicit return value, the function does not guarantee that the system registers are not changed after the function called.
+    - postBoot and preShutdown sequences are not forced to follow rules above. they can overwrite any register without duty that revert to original value.

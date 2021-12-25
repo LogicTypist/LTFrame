@@ -1,0 +1,253 @@
+;This is a very simple program selector.
+;User can choose program pressing 'W', 'S' and 'enter' key.
+;This code is too hard to understand because I wrote it 2 years ago.
+main:
+	mov r11, [ADDR_R2TERM]		;A baaaad method to make this compatible with LTFrame.
+C_UI:						;C-UI : WIP
+	mov [.crnt_cursor], 0
+	mov [.prev_cursor], 0
+	call .show_page
+	call .move_cursor
+	.mloop:
+	call .input
+	call .move_cursor
+	jmp .mloop
+	
+.crnt_cursor:
+	dw 0
+.prev_cursor:
+	dw 0
+	
+.show_page:
+	mov r2, program_titles
+	mov r0, [r2]
+	.loop:
+		jz .next
+		mov r10, r0
+		call Tm_output_str
+		add r2, 1
+		mov r0, [r2]
+		jmp .loop
+	.next:
+		ret
+		
+.move_cursor:
+	mov r0, [.prev_cursor]
+	add r0, program_titles
+	mov r0, [r0]
+	mov r0, [r0]
+	sub r0, 1
+	send r11, r0
+	send r11, 0x20
+	mov r0, [.crnt_cursor]
+	add r0, program_titles
+	mov r0, [r0]
+	mov r0, [r0]
+	sub r0, 1
+	send r11, r0
+	send r11, 194
+	ret
+	
+	
+	
+.input:
+	call Tm_input_char
+	mov r0, r10
+	cmp r0, 'w'
+	je .up
+	cmp r0, 's'
+	je .down
+	cmp r0, 13
+	je .enter
+	jmp .input
+
+.up:
+	mov r0, [.crnt_cursor]
+	cmp r0, 0
+	je .input
+	
+	mov [.prev_cursor], r0
+	sub [.crnt_cursor], 1
+	ret
+.down:
+	mov r0, [.crnt_cursor]
+	cmp r0, 1
+	je .input
+	
+	mov [.prev_cursor], r0
+	add [.crnt_cursor], 1
+	ret
+	
+.enter:
+	mov r0, [.crnt_cursor]
+	add r0, program_addr
+	jmp [r0]
+
+;program list.
+program_addr:
+	dw MARS_, Config, 0
+program_titles:
+	dw .title0, .title1, 0
+	.title0:
+		dw 0x1044, "MARS_t", 0
+	.title1:
+		dw 0x1064, "Config", 0
+
+
+		
+;A prototype ui for a discontinued game.
+;not working properly.(because of and mistake in key input function. maybe)
+MARS_:
+	call Tm_clear_scr
+	bump r11
+	mov r10, .data
+	call Tm_output_str
+	mov r0, .map
+	call draw_map
+	call draw_char
+	.loop:
+		call CA_input
+		call draw_char
+		bump r11
+		jmp .loop
+	call pause
+	call shutdown
+	
+	.data:
+		dw 0x1008, 218, 0x1018, 218, 0x1028, 218, 0x1038, 218, 0x1048, 218, 0x1058, 218, 0x1068, 218, 0x1078, 218
+		dw 0x1080, 217, 217, 217, 217, 217, 217, 217, 217, 227, 217, 217, 217, 217, 217, 217, 217
+		dw 0x1009, 'H', 0x7F, 0x7F, 0x20, 'E', 0x7F,0x7F, 0x1019, 'T', 0x7F, 0x7F, 0x20, 'F', 0x7F, 0x7F, 0
+	.map:
+		dw "+++   ++"
+		dw "++     +"
+		dw "        "
+		dw "       +"
+		dw "###     "
+		dw "|B|  C  "
+		dw "     +++"
+		dw "   +++++"
+
+draw_map:
+	mov r1, 0x1000
+	.loop:
+		send r11, r1
+		send r11, [r0]
+		send r11, [r0+1]
+		send r11, [r0+2]
+		send r11, [r0+3]
+		send r11, [r0+4]
+		send r11, [r0+5]
+		send r11, [r0+6]
+		send r11, [r0+7]
+		add r1, 0x0010
+		add r0, 8
+		cmp r1, 0x1080
+		jne .loop
+	.exit:
+		ret
+
+draw_char:
+	mov r0, char_pos
+	mov r2, [r0+1]
+	mov r1, crnt_map_addr
+	add r1, r2
+	or r2, 0x1000
+	send r11, r2
+	send r11, [r1]
+	
+	mov r2, [r0]
+	or r2, 0x1000
+	send r11, r2
+	send r11, 174
+	ret
+
+CA_char_up:
+	mov r0, char_pos
+	mov r1, [r0]
+	mov [r0+1], r1
+	sub [r0], 16
+	jmp CA_input.exit
+CA_char_down:
+	mov r0, char_pos
+	mov r1, [r0]
+	mov [r0+1], r1
+	add [r0], 16
+	jmp CA_input.exit
+CA_char_left:
+	mov r0, char_pos
+	mov r1, [r0]
+	mov [r0+1], r1
+	sub [r0], 1
+	jmp CA_input.exit
+CA_char_right:
+	mov r0, char_pos
+	mov r1, [r0]
+	mov [r0+1], r1
+	add [r0], 1
+	jmp CA_input.exit
+
+CA_input:
+	bump r11
+	nop
+	nop
+	nop
+	nop
+	nop
+	nop
+	recv r0, r11
+	jnc .exit
+	.go:
+	.little:
+		sub r0, 0x61
+	.recognize:
+		add r0, .keybinding
+		mov r0, [r0]
+		jz .exit
+		jmp r0
+
+	.keybinding:
+		dw CA_char_left;a
+		dw .exit	;b
+		dw .exit	;c
+		dw CA_char_right;d
+		dw .exit	;e
+		dw .exit	;f
+		dw .exit	;g
+		dw .exit	;h
+		dw .exit	;i
+		dw .exit	;j
+		dw .exit	;k
+		dw .exit	;l
+		dw .exit	;m
+		dw .exit	;n
+		dw .exit	;o
+		dw .exit	;p
+		dw .exit	;q
+		dw .exit	;r
+		dw CA_char_down;s
+		dw .exit	;t
+		dw .exit	;u
+		dw .exit	;v
+		dw CA_char_up;w
+		dw .exit	;x
+		dw .exit	;y
+		dw .exit	;z
+	.exit:
+	ret
+;global variables @ project_c
+
+char_pos:
+	dw 0x0033
+prev_char_pos:
+	dw 0x0033
+game_time:
+	dw 0;
+crnt_map:
+	dw 0
+crnt_map_addr:
+	dw MARS_.map
+Config:
+	mov r10, .str
+	call Tm_output_str
+	call shutdown
+	.str: dw 0x1000, "Config", 0

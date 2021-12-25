@@ -3,15 +3,27 @@
 %endif
 
 LTUI_boot:
-    mov 
+    mov r10, [DEFAULT_TEXT_COLOR_INVERTED]
+    send [ADDR_R2TERM], r10
+
+    mov r10, .data
     call Tm_output_str
+
+    mov r10, [DEFAULT_TEXT_COLOR]
+    send [ADDR_R2TERM], r10
+    ret
 .data:
-    dw 0x10B0, 0x20F0, "BOOT            ", 0
+    dw 0x10B0, "BOOT            ", 0
 
 LTUI_shutdown:
-    mov r0, 0
-    send r0, 0x1000
-    send r0, 0x200F
-    send r0, 0x30
-    hlt
-    jmp boot
+    mov r10, [DEFAULT_TEXT_COLOR_INVERTED]
+    send [ADDR_R2TERM], r10
+    
+    mov r10, .data
+    call Tm_output_str
+
+    mov r10, [DEFAULT_TEXT_COLOR]
+    send [ADDR_R2TERM], r10
+    ret
+.data:
+    dw 0x10B0, 0x20F0, "SHUTDOWN        ", 0
